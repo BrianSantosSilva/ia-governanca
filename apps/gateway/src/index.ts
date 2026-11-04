@@ -492,6 +492,81 @@ export async function buildGatewayServer(
     reply.type('text/plain; version=0.0.4; charset=utf-8').send(metrics.render()),
   );
 
+  app.get(
+    '/v1/models',
+    {
+      schema: {
+        description: 'Lista os modelos permitidos para a chave virtual (compatível com OpenAI).',
+        tags: ['inference'],
+        security: [{ virtualKey: [] }],
+      },
+    },
+    async (request, reply) => {
+      const authHeader = request.headers.authorization;
+      const rawKey = authHeader?.startsWith('Bearer ') ? authHeader.slice('Bearer '.length).trim() : '';
+      if (!rawKey) {
+        return reply.code(401).send({
+          error: 'unauthorized',
+          message: 'Cabeçalho Authorization ausente ou mal formatado',
+        });
+      }
+      const keyRes = await pool.query<{
+        id: string;
+        organization_id: string;
+        project_id: string | null;
+        name: string;
+        key_hash: string;
+        allowed_providers: string[];
+        allowed_models: string[];
+        scopes: string[];
+        expires_at: Date | null;
+        revoked_at: Date | null;
+        created_at: Date;
+      }>(
+        `SELECT id, organization_id, project_id, name, key_hash, allowed_providers, allowed_models,
+                scopes, expires_at, revoked_at, created_at
+         FROM virtual_keys WHERE key_hash = $1`,
+        [hashVirtualKey(rawKey)],
+      );
+      const key = keyRes.rows[0];
+      if (!key || !verifyVirtualKey(rawKey, key.key_hash)) {
+        return reply.code(401).send({
+          error: 'invalid_virtual_key',
+          message: 'Chave virtual inválida ou inexistente',
+        });
+      }
+      const data = key.allowed_models
+        .filter((model) => {
+          const modelProvider = model.toLowerCase().startsWith('gemini-')
+            ? 'gemini'
+            : azureOpenAIDeployment && model === azureOpenAIDeployment
+              ? 'azure-openai'
+              : 'ollama';
+          return evaluateVirtualKeyPolicy(
+            {
+              id: key.id,
+              name: key.name,
+              organizationId: key.organization_id,
+              projectId: key.project_id,
+              allowedProviders: key.allowed_providers,
+              allowedModels: key.allowed_models,
+              scopes: key.scopes,
+              expiresAt: key.expires_at,
+              revokedAt: key.revoked_at,
+            },
+            { provider: modelProvider, model, requiredScope: 'chat:completions' },
+          ).allowed;
+        })
+        .map((model) => ({
+          id: model,
+          object: 'model',
+          created: Math.floor(new Date(key.created_at).getTime() / 1000),
+          owned_by: 'gateway',
+        }));
+      return reply.send({ object: 'list', data });
+    },
+  );
+
   app.post(
     '/v1/chat/completions',
     {

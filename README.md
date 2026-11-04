@@ -72,6 +72,8 @@ Para executar as etapas manualmente:
 
 ## Rate limiting, métricas e retenção
 
+O Gateway expõe `GET /v1/models` (compatível com OpenAI): com `Authorization: Bearer <chave virtual>`, lista apenas os modelos permitidos para a chave. Em ferramentas como VS Code (Continue, Copilot Chat BYOK), use a URL base `http://localhost:3002/v1`.
+
 Os limites padrão por endereço IP são 120 requisições/minuto na API e no Gateway. Configure `API_RATE_LIMIT_MAX` e `GATEWAY_RATE_LIMIT_MAX`; são limites em memória por processo e não substituem rate limiting distribuído em uma implantação com múltiplas réplicas. Requisições de inferência ainda respeitam o limite adicional por chave virtual.
 
 Os endpoints `/metrics` expõem texto Prometheus; `/health` verifica a conexão com PostgreSQL. Os logs operacionais são JSON e incluem correlação/status/duração sem registrar o corpo das requisições, prompts ou segredos. Não publique métricas nem logs sem restringir o acesso.

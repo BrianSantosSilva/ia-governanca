@@ -75,3 +75,10 @@ Outros exemplos
 • Modo interativo, que pergunta sobre o Keycloak e o e-mail do admin:  .\scripts\first-project-init.ps1 
 
 O  -SeedDev  apaga as tabelas do banco. Use só em ambiente de teste
+
+
+
+link de acesso ao azure
+https://ai.azure.com/nextgen
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit.

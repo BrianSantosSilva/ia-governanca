@@ -1,0 +1,20 @@
+{
+  "providers": [
+    {
+      "name": "gateway-gpt41",
+      "type": "openai",
+      "baseUrl": "http://localhost:3002/v1",
+      "apiKey": "aisp_live_dev00005_69115476df259e0407829985615a84487d8e5f5c42d38608"
+    },
+    {
+      "name": "gateway-qwen",
+      "type": "openai",
+      "baseUrl": "http://localhost:3002/v1",
+      "apiKey": "aisp_live_dev00005_69115476df259e0407829985615a84487d8e5f5c42d38608"
+    }
+  ],
+  "models": [
+    { "id": "gpt-4.1-mini", "provider": "gateway-gpt41", "maxPromptTokens": 128000, "maxOutputTokens": 4096 },
+    { "id": "qwen2.5:7b", "provider": "gateway-qwen", "maxPromptTokens": 32768, "maxOutputTokens": 4096 }
+  ]
+}
