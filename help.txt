@@ -1,0 +1,77 @@
+
+
+• Provedor permitido: ollama
+
+• Provedor permitido:  azure-openai 
+• Modelo permitido:  Phi-4-mini-instruct 
+
+
+ollama pull qwen2.5:7b
+
+
+┌─────────────────────────┬──────────────────────┬─────────────────────────────────────────────────────────────────────┐
+│ Chave                   │ Modelo               │ Valor                                                               │
+├─────────────────────────┼──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ Ollama llama3.2         │ llama3.2             │ aisp_live_dev00001_72397c5b28e87c55d0969b49283a88510d1939536431a7c6 │
+├─────────────────────────┼──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ Ollama qwen2.5:7b       │ qwen2.5:7b           │ aisp_live_dev00002_b3a4b82a2444c417f72c282054578fd15c204de5227d0e1f │
+├─────────────────────────┼──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ Foundry Phi-4-mini      │ Phi-4-mini-instruct  │ aisp_live_dev00003_4f2d1675dfd6199bc10c047e232f35177e6a1849212d35c3 │
+├─────────────────────────┼──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ Foundry gpt-4.1-mini    │ gpt-4.1-mini         │ aisp_live_dev00004_3cf912c4b093b5555c393ba39003aa3d9ed7a8fe1213b193 │
+├─────────────────────────┼──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ Todos os modelos        │ os 4 modelos acima   │ aisp_live_dev00005_69115476df259e0407829985615a84487d8e5f5c42d38608 │
+├─────────────────────────┼──────────────────────┼─────────────────────────────────────────────────────────────────────┤
+│ Orçamento baixo (block) │ llama3.2, qwen2.5:7b │ aisp_live_dev00006_5cb072fff81ceb48b2cb5ff9ba2b9d555b685a1ed2bdfdf8 │
+└─────────────────────────┴──────────────────────┴─────────────────────────────────────────────────────────────────────┘
+
+
+- `owner@acme.local` (senha: `owner_dev_123`)
+- `finops@acme.local` (senha: `finops_dev_123`)
+- `viewer@acme.local` (senha: `viewer_dev_123`)
+
+
+User/Senha
+DevLocal#2026-Acme
+
+
+--reseta tudo 
+npx tsx scripts/reset-db.ts --yes
+
+
+
+
+Comandos a partir da raiz  ia-governanca , no PowerShell.
+
+Sem Keycloak (só login por e-mail e senha)
+
+.\scripts\first-project-init.ps1 -Keycloak Nao -AdminEmail voce@empresa.com
+
+Define  AUTH_MODE=local  no  .env . Sem  -AdminEmail , o script pergunta o e-mail e a senha.
+
+Sem Postgres do Docker (usa o Postgres embarcado via npm)
+
+.\scripts\first-project-init.ps1 -Keycloak Nao -Postgres Embedded -AdminEmail voce@empresa.com
+
+• Os dados ficam em  .data\postgres .
+• Com  -Postgres Auto  (o padrão), o embarcado entra sozinho se não houver Docker.
+• Para subir só o banco:  npm run db:embedded .
+
+Sem Ollama (só provedores externos, como o Foundry)
+
+.\scripts\first-project-init.ps1 -Keycloak Nao -SkipOllama -AdminEmail voce@empresa.com
+
+Se o Ollama não estiver instalado, o script avisa e segue sem ele.
+
+Mínimo possível (sem Keycloak, Docker nem Ollama)
+
+.\scripts\first-project-init.ps1 -Keycloak Nao -Postgres Embedded -SkipOllama -AdminEmail voce@empresa.com
+
+Outros exemplos
+
+• Com Keycloak (exige Docker):  .\scripts\first-project-init.ps1 -Keycloak Sim -SeedDev 
+• Com dados de teste (usuários, chaves e preços):  .\scripts\first-project-init.ps1 -Keycloak Nao -SeedDev . Os usuários ficam com a senha  DevLocal#2026-Acme .
+• Só preparar, sem abrir serviços:  .\scripts\first-project-init.ps1 -Keycloak Nao -NoStart 
+• Modo interativo, que pergunta sobre o Keycloak e o e-mail do admin:  .\scripts\first-project-init.ps1 
+
+O  -SeedDev  apaga as tabelas do banco. Use só em ambiente de teste

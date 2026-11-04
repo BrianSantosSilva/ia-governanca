@@ -1,0 +1,4 @@
+external_id,provider,model,period_start,period_end,usage_quantity,currency,amount,project_id
+openai-cost-err-001,openai,gpt-4o,2026-10-01T00:00:00.000Z,2026-10-31T23:59:59.000Z,1000,INVALID_CURRENCY,-15.50,
+openai-cost-err-002,openai,gpt-4o-mini,not-a-date,not-a-date,500,USD,2.00,
+,openai,gpt-4o,2026-10-01T00:00:00.000Z,2026-10-31T23:59:59.000Z,100,USD,1.00,

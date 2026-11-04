@@ -1,0 +1,6 @@
+external_id,provider,contract_id,user_email,user_external_id,status,seat_cost,currency,assigned_at,last_activity_at
+gh-copilot-001,github,,ana.silva@empresa.com.br,gh-ana-silva,assigned,19.000000,USD,2026-10-01T08:00:00.000Z,2026-10-30T17:45:00.000Z
+gh-copilot-002,github,,bruno.lima@empresa.com.br,gh-bruno-lima,assigned,19.000000,USD,2026-10-01T08:00:00.000Z,2026-10-29T11:20:00.000Z
+gh-copilot-003,github,,carla.dias@empresa.com.br,gh-carla-dias,revoked,19.000000,USD,2026-09-01T08:00:00.000Z,2026-10-15T16:00:00.000Z
+openai-team-001,openai,,diego.souza@empresa.com.br,oai-diego,assigned,30.000000,USD,2026-10-05T10:00:00.000Z,2026-10-31T09:00:00.000Z
+cursor-pro-001,cursor,,elena.rocha@empresa.com.br,cur-elena,assigned,20.000000,USD,2026-10-10T12:00:00.000Z,2026-10-28T18:00:00.000Z

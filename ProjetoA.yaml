@@ -1,0 +1,885 @@
+AI Spend & Governance Platform
+Documento de arquitetura, implementação e execução do protótipo
+
+Versão: 1.0
+Objetivo: Provar o conceito de uma plataforma unificada de governança, consumo e custos de inteligência artificial.
+Ambiente: Desenvolvimento local
+Orçamento-alvo: R$ 0 em serviços pagos durante o desenvolvimento
+Stack principal: TypeScript, Node.js, Fastify, React, PostgreSQL, Docker, Keycloak e Ollama.
+
+1. Visão geral do projeto
+1.1. Objetivo
+
+Construir um protótipo funcional capaz de demonstrar como uma empresa pode centralizar a governança financeira e operacional de ferramentas de inteligência artificial.
+
+O sistema deverá consolidar informações de:
+
+Consumo de APIs de LLM.
+Custos estimados e custos reportados pelos fornecedores.
+Licenças corporativas, assentos atribuídos e indicadores de utilização.
+Usuários, equipes, projetos e permissões.
+Políticas de orçamento e limites de consumo.
+Histórico de chamadas e auditoria.
+Diferentes provedores de IA por meio de um gateway centralizado.
+
+A plataforma deverá ser capaz de mostrar, em um único dashboard, quanto foi consumido, qual foi o custo, qual é a origem dos dados e onde existem divergências.
+
+1.2. Estratégia de desenvolvimento
+
+O projeto será desenvolvido primeiro como um laboratório local.
+
+Não será necessário contratar infraestrutura de nuvem, banco gerenciado, serviço de autenticação pago ou APIs comerciais para concluir a primeira versão.
+
+O sistema utilizará três tipos de dados:
+
+Dados sintéticos para validar o produto.
+Chamadas a uma LLM executada localmente para testar o gateway.
+Dados reais de APIs oficiais, quando houver acesso gratuito ou uma conta autorizada disponível.
+
+A arquitetura deverá permitir substituir os componentes de demonstração por integrações reais sem reescrever o domínio financeiro.
+
+1.3. O que não faz parte desta versão
+Marketplace de agentes e skills.
+Análise de dependências entre agentes e skills.
+Faturamento de clientes.
+Previsão financeira baseada em machine learning.
+Roteamento inteligente de modelos por qualidade e custo.
+Implantação multi-região.
+Alta disponibilidade de produção.
+
+Esses itens poderão ser avaliados em etapas futuras, mas não são necessários para provar o conceito do projeto atual.
+
+2. Pré-requisitos obrigatórios
+2.1. Software necessário
+
+Instalar antes de iniciar o desenvolvimento:
+
+Software	Finalidade	Obrigatório
+Git	Controle de versão	Sim
+Node.js LTS e npm	Backend, frontend e ferramentas	Sim
+Docker e Docker Compose	PostgreSQL e serviços auxiliares	Sim
+PostgreSQL	Persistência dos dados	Sim, via Docker inicialmente
+Ollama	Executar a LLM local	Sim
+Editor de código	Desenvolvimento	Sim
+Navegador moderno	Utilização do dashboard	Sim
+Conta em provedor de LLM	Integração externa	Não
+
+Documentação oficial:
+
+Git: https://git-scm.com/doc
+Node.js: https://nodejs.org/
+Docker: https://docs.docker.com/get-started/
+PostgreSQL: https://www.postgresql.org/docs/
+Ollama: https://ollama.com/
+2.2. ATENÇÃO — a LLM local é um pré-requisito obrigatório
+
+Instalar e validar o Ollama antes de implementar o gateway.
+
+O protótipo utilizará uma LLM local para gerar chamadas reais, receber metadados de uso e validar o fluxo financeiro sem pagar por tokens.
+
+A instalação do Ollama, por si só, não instala necessariamente o modelo que será executado. Também será necessário baixar pelo menos um modelo compatível com o hardware disponível.
+
+Procedimento
+Acesse https://ollama.com/download.
+Instale a versão correspondente ao seu sistema operacional.
+Abra um terminal.
+Baixe um modelo inicial:
+ollama pull llama3.2
+
+Execute o modelo:
+ollama run llama3.2
+
+Envie uma pergunta simples e verifique se o modelo responde.
+Saia da sessão interativa e teste a API local:
+curl http://localhost:11434/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llama3.2",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Responda apenas: ambiente local funcionando"
+      }
+    ],
+    "stream": false
+  }'
+
+
+A API do Ollama disponibiliza métricas de uso, como quantidade de tokens de entrada e saída, além de duração da geração. Essas informações serão utilizadas pelo projeto para registrar o consumo. Consulte https://github.com/ollama/ollama/blob/main/docs/api.md.
+
+Critério de conclusão
+O Ollama está instalado.
+O modelo foi baixado.
+A inferência funciona pelo terminal.
+A API local responde em http://localhost:11434.
+A resposta inclui os metadados de uso esperados.
+
+Não avance para a implementação do gateway enquanto essa validação não estiver concluída.
+
+Observação sobre hardware
+
+A velocidade depende da memória disponível, do processador e, quando existente, da GPU. Se o computador não suportar confortavelmente o modelo escolhido, selecione um modelo menor disponível no catálogo do Ollama.
+
+O uso local não gera cobrança por token, mas utiliza recursos computacionais e energia elétrica.
+
+3. Arquitetura do protótipo
+3.1. Componentes
+
+O sistema será organizado em módulos dentro de um único repositório.
+
+Frontend: dashboard administrativo.
+API administrativa: gestão de organizações, usuários, projetos e conectores.
+Gateway LLM: recebe chamadas das aplicações e as encaminha aos provedores.
+Serviço de políticas: valida permissões, limites e orçamentos.
+Ledger financeiro: registra eventos de uso e custos.
+Framework de conectores: coleta dados por APIs e CSV.
+Workers: executam sincronizações fora do caminho crítico das chamadas de inferência.
+PostgreSQL: fonte de verdade dos dados.
+Keycloak: provedor local de identidade para testes de SSO.
+Ollama: provedor local de inferência.
+3.2. Fluxo principal
+Uma aplicação envia uma chamada ao gateway.
+O gateway autentica a chave virtual.
+O serviço de políticas verifica o projeto, o modelo permitido e o orçamento.
+O gateway encaminha a requisição ao Ollama ou a outro provedor habilitado.
+A resposta e os metadados de utilização são recebidos.
+O sistema registra o evento no ledger.
+O módulo financeiro calcula o custo com base na tabela de preços configurada.
+O dashboard apresenta a utilização e os valores registrados.
+
+Para dados externos, o fluxo é diferente:
+
+Um worker inicia uma sincronização.
+O conector consulta uma API oficial ou interpreta um CSV.
+Os registros são validados e normalizados.
+A origem, o período e os identificadores externos são preservados.
+O sistema persiste os registros e atualiza o estado da sincronização.
+O módulo de reconciliação compara os custos externos com os registros internos.
+4. Organização do repositório
+
+Criar um monorepo com a seguinte estrutura:
+
+ia-governanca/
+├── apps/
+│   ├── api/
+│   │   └── src/
+│   ├── gateway/
+│   │   └── src/
+│   ├── worker/
+│   │   └── src/
+│   └── web/
+│       └── src/
+├── packages/
+│   ├── contracts/
+│   ├── database/
+│   ├── connectors/
+│   ├── identity/
+│   ├── policies/
+│   └── finance/
+├── migrations/
+├── fixtures/
+│   ├── csv/
+│   └── json/
+├── tests/
+│   ├── integration/
+│   ├── security/
+│   └── e2e/
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+├── package.json
+└── README.md
+
+
+Responsabilidades:
+
+apps/api: endpoints administrativos.
+apps/gateway: inferência, autenticação de chaves virtuais e registro de utilização.
+apps/worker: execução de sincronizações e importações.
+apps/web: interface de usuário.
+packages/contracts: contratos TypeScript e validações compartilhadas.
+packages/database: acesso ao PostgreSQL e migrações.
+packages/connectors: integrações externas.
+packages/identity: autenticação e autorização.
+packages/policies: limites e regras de acesso.
+packages/finance: preços, custos e reconciliação.
+fixtures: dados sintéticos para testes reproduzíveis.
+
+Utilize workspaces do npm para compartilhar os pacotes internos.
+
+5. Etapa 1 — Preparar o ambiente
+Tarefa 1.1 — Criar o repositório
+
+Executar:
+
+mkdir ia-governanca
+cd ia-governanca
+git init
+npm init -y
+
+
+Configurar o projeto para utilizar npm workspaces e criar os diretórios definidos anteriormente.
+
+Tarefa 1.2 — Configurar as dependências
+
+Utilizar inicialmente:
+
+Fastify para os serviços HTTP.
+TypeScript para o backend.
+React e Vite para o frontend.
+Zod para validação de contratos.
+Um driver PostgreSQL, como pg.
+Uma ferramenta de migrações SQL, como node-pg-migrate.
+Uma biblioteca de testes, como Vitest.
+OpenAPI para documentar os endpoints.
+
+As dependências devem ser instaladas e fixadas no arquivo de lock do npm.
+
+Tarefa 1.3 — Preparar variáveis de ambiente
+
+Criar .env.example:
+
+NODE_ENV=development
+
+DATABASE_URL=postgres://app:app_dev_password@localhost:5432/ai_spend
+
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+
+LLM_DEFAULT_PROVIDER=ollama
+LLM_EXTERNAL_PROVIDERS_ENABLED=false
+
+APP_BASE_URL=http://localhost:3000
+API_BASE_URL=http://localhost:3001
+
+KEYCLOAK_BASE_URL=http://localhost:8080
+KEYCLOAK_REALM=ai-spend
+
+
+Os valores são de desenvolvimento. Não utilizar essas credenciais em um ambiente público.
+
+O arquivo .env real deve ser ignorado pelo Git.
+
+Tarefa 1.4 — Subir o banco de dados
+
+Criar um docker-compose.yml inicial para o PostgreSQL:
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ai_spend
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_dev_password
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d ai_spend"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+
+
+Iniciar:
+
+docker compose up -d postgres
+docker compose ps
+
+
+Validar:
+
+docker compose exec postgres \
+  pg_isready -U app -d ai_spend
+
+
+Critérios de conclusão:
+
+O repositório foi criado.
+O TypeScript compila.
+O PostgreSQL está saudável.
+A aplicação consegue abrir uma conexão com o banco.
+As variáveis de ambiente estão separadas do código.
+6. Etapa 2 — Implementar o domínio e o banco de dados
+
+A primeira migração deve criar as entidades fundamentais. Implementar as migrações em ordem e validar cada uma antes de prosseguir.
+
+Tarefa 2.1 — Organizações e identidade
+
+Criar:
+
+organizations
+users
+memberships
+teams
+team_memberships
+projects
+
+Regras:
+
+Usuários podem pertencer a diferentes organizações.
+Cada associação possui um papel explícito.
+Equipes e projetos pertencem a uma organização.
+Um projeto não pode referenciar uma equipe de outra organização.
+A remoção de usuários não deve apagar o histórico financeiro.
+Tarefa 2.2 — Conectores e ingestão
+
+Criar:
+
+provider_connections
+sync_runs
+source_records
+external_identities
+
+Cada execução deve registrar o estado, o período consultado, a quantidade de registros processados e os erros encontrados.
+
+Os registros externos devem preservar o identificador do fornecedor e a proveniência.
+
+Tarefa 2.3 — Licenças
+
+Criar:
+
+license_contracts
+license_assignments
+
+Distinguir o valor total de um contrato do custo por assento.
+
+Uma licença contratada não significa necessariamente que esteja atribuída ou sendo utilizada.
+
+Tarefa 2.4 — Gateway e finanças
+
+Criar:
+
+virtual_keys
+usage_events
+model_prices
+cost_records
+reconciliation_matches
+budget_policies
+budget_reservations
+audit_events
+
+Regras obrigatórias:
+
+Utilizar numeric para valores monetários.
+Utilizar timestamptz para datas com fuso horário.
+Preservar a moeda original.
+Versionar os preços.
+Separar custos estimados de custos reportados.
+Impedir referências cruzadas entre organizações por constraints e validações.
+Nunca armazenar a chave virtual em texto puro.
+Registrar ações administrativas relevantes em auditoria.
+
+A estrutura de referência deve ser implementada a partir do schema técnico definido durante a especificação. Antes de considerar a migração pronta, completar todas as chaves estrangeiras compostas e constraints de tenant.
+
+Tarefa 2.5 — Testar integridade
+
+Criar testes para:
+
+Criar uma organização e um projeto.
+Associar uma equipe ao projeto.
+Criar um usuário e uma associação.
+Impedir associação de um usuário a uma equipe de outra organização.
+Impedir uma chave virtual de acessar um projeto de outro tenant.
+Garantir que a remoção lógica não apague os eventos financeiros.
+Reexecutar uma migração de teste em um banco vazio.
+
+Critério de conclusão: o domínio básico pode ser criado e consultado por meio de transações reais no PostgreSQL.
+
+7. Etapa 3 — Implementar a autenticação
+Tarefa 3.1 — Criar um ambiente local com Keycloak
+
+O Keycloak será utilizado para testar o fluxo de autenticação OIDC sem contratar um provedor corporativo.
+
+Documentação oficial:
+
+https://www.keycloak.org/getting-started/getting-started-docker
+
+Executar o serviço de desenvolvimento somente em localhost e configurar credenciais administrativas exclusivas para o laboratório.
+
+Tarefa 3.2 — Configurar o realm
+
+Criar um realm chamado ai-spend.
+
+Registrar um cliente OIDC para a aplicação web.
+
+Configurar:
+
+URL de redirecionamento.
+URL de origem permitida.
+Fluxo de autorização adequado para a aplicação.
+Validação do issuer e audience.
+Claims de identidade.
+Sessão e expiração.
+
+Não utilizar fluxo implícito legado. Não colocar client secrets em código frontend.
+
+Tarefa 3.3 — Implementar autorização
+
+O backend deve validar a identidade e resolver as associações da pessoa com as organizações.
+
+Implementar os papéis:
+
+owner
+admin
+finops
+security
+developer
+viewer
+
+A autorização deve ocorrer no backend, mesmo quando o frontend oculta funcionalidades.
+
+Critérios de conclusão:
+
+Login OIDC funcionando.
+Sessão autenticada.
+Papéis aplicados nos endpoints.
+Usuários de uma organização não acessam dados de outra.
+Ações administrativas geram auditoria.
+
+Observação: o ambiente Keycloak em modo de desenvolvimento não deve ser exposto publicamente nem tratado como configuração pronta para produção.
+
+8. Etapa 4 — Criar o framework de conectores
+Tarefa 4.1 — Definir o contrato
+
+Criar uma interface TypeScript com:
+
+Identificação do provedor.
+Datasets suportados.
+Validação de conexão.
+Método de coleta paginada.
+Checkpoints.
+Avisos e erros.
+Identificadores externos.
+
+O conector não deve gravar diretamente no banco. O serviço de ingestão será responsável pela persistência.
+
+Tarefa 4.2 — Implementar o worker
+
+O worker deverá:
+
+Receber uma solicitação de sincronização.
+Criar um registro em sync_runs.
+Consultar o conector.
+Validar e normalizar os dados.
+Persistir os registros com idempotência.
+Atualizar o checkpoint.
+Registrar erros sem incluir segredos.
+Finalizar a execução com estado apropriado.
+
+Implementar timeouts, retries com backoff e respeito a limites de taxa.
+
+Tarefa 4.3 — Criar o importador CSV
+
+Implementar dois formatos iniciais:
+
+Custos de APIs.
+Atribuições de licenças.
+
+O importador deve validar datas, moedas, valores monetários e campos obrigatórios.
+
+Adicionar um modo dry run, que valida o arquivo sem persistir dados.
+
+Criar fixtures de exemplo em fixtures/csv.
+
+Tarefa 4.4 — Testar idempotência
+
+Importar o mesmo arquivo duas vezes e garantir que os registros não sejam duplicados.
+
+Simular uma falha durante a sincronização e validar a retomada.
+
+Critérios de conclusão:
+
+CSV válido é processado.
+CSV inválido retorna erros compreensíveis.
+O modo de validação não persiste registros.
+Uma execução pode ser retomada.
+Os registros mantêm sua origem.
+Os erros são auditáveis.
+9. Etapa 5 — Implementar o gateway LLM
+
+Esta é uma das partes centrais do produto.
+
+Tarefa 5.1 — Definir a API de inferência
+
+Criar um endpoint, por exemplo:
+
+POST /v1/chat/completions
+
+O endpoint receberá uma requisição de chat, autenticará a chave virtual e encaminhará a chamada para um adaptador.
+
+O formato pode ser compatível com a API de chat da OpenAI para facilitar a integração futura de SDKs. Isso não significa que todos os provedores tenham comportamento idêntico; os adaptadores devem tratar diferenças específicas.
+
+Tarefa 5.2 — Implementar o adaptador Ollama
+
+O adaptador deve:
+
+Receber a requisição validada.
+Converter o payload para o formato do Ollama.
+Executar a inferência local.
+Recuperar o conteúdo e os metadados de uso.
+Converter a resposta para o formato público do gateway.
+Registrar o evento no ledger.
+
+Para a primeira versão, utilizar respostas sem streaming. Adicionar streaming somente depois que o caminho completo estiver funcionando.
+
+Tarefa 5.3 — Criar as chaves virtuais
+
+Gerar chaves com fonte de aleatoriedade criptograficamente segura.
+
+Persistir somente o hash e o prefixo de identificação.
+
+Implementar:
+
+Criação.
+Revogação.
+Expiração.
+Associação a projeto.
+Escopos autorizados.
+Limite de utilização.
+
+A aplicação cliente nunca deve receber a credencial real de um provedor externo.
+
+Tarefa 5.4 — Registrar os eventos
+
+Para cada tentativa, registrar:
+
+Organização.
+Projeto.
+Chave virtual.
+Provedor.
+Modelo.
+Tokens de entrada.
+Tokens de saída.
+Duração.
+Estado.
+Identificador da requisição.
+Número da tentativa.
+
+Os eventos devem ser registrados mesmo quando a chamada falhar, desde que o sistema consiga determinar o estado. Quando não for possível saber se o provedor executou uma chamada, marcar o resultado como incerto, sem inventar métricas.
+
+Tarefa 5.5 — Criar um teste de integração
+
+Enviar uma chamada ao gateway usando uma chave virtual e confirmar que:
+
+A requisição chega ao Ollama.
+O modelo retorna uma resposta.
+O gateway registra o consumo.
+O evento é persistido no PostgreSQL.
+O dashboard consegue consultar o evento.
+
+Critério de conclusão: a chamada percorre o gateway inteiro e deixa um registro rastreável.
+
+10. Etapa 6 — Implementar custos e orçamento
+Tarefa 6.1 — Criar o catálogo de preços
+
+Criar uma estrutura de preços versionada, identificando:
+
+Provedor.
+Modelo.
+Moeda.
+Preço por unidade de consumo.
+Início e fim de validade.
+Origem do preço.
+Tipo de preço.
+
+Os preços do Ollama serão classificados como estimativas internas ou dados de simulação, não como tarifas reais de API.
+
+Tarefa 6.2 — Calcular os custos
+
+Para modelos com tarifação por tokens, a fórmula básica é:
+
+custo = tokens de entrada × preço de entrada + tokens de saída × preço de saída
+
+Os preços devem ser expressos por unidade consistente, por exemplo, por milhão de tokens.
+
+O cálculo deve utilizar aritmética decimal e registrar a versão do preço utilizada.
+
+Quando o fornecedor cobrar por cache, imagens, áudio, ferramentas ou outros recursos, o cálculo deverá incluir essas categorias somente quando os dados necessários estiverem disponíveis.
+
+Tarefa 6.3 — Separar as categorias financeiras
+
+O dashboard deverá distinguir:
+
+Custo estimado pelo gateway.
+Custo reportado pelo fornecedor.
+Custo contratado de licenças.
+Ajustes financeiros.
+Registros ainda não reconciliados.
+
+Não somar automaticamente um custo estimado ao custo reportado da mesma utilização.
+
+Tarefa 6.4 — Implementar políticas de orçamento
+
+Criar limites para:
+
+Organização.
+Projeto.
+Chave virtual.
+
+Suportar modos:
+
+observe: registra sem bloquear.
+alert: sinaliza o limite.
+block: bloqueia novas chamadas quando o limite aplicável for atingido.
+
+As reservas de orçamento precisam ser atômicas. Uma verificação seguida de uma gravação independente pode permitir que requisições concorrentes ultrapassem o limite.
+
+Definir o comportamento para chamadas em andamento, custos incertos e reservas expiradas.
+
+Critérios de conclusão:
+
+O custo calculado pode ser reproduzido.
+Os preços são versionados.
+Valores simulados não aparecem como custos reais.
+O limite bloqueia chamadas conforme a política.
+Testes concorrentes não permitem ultrapassar o orçamento por falha de sincronização.
+11. Etapa 7 — Implementar integrações externas
+
+Esta etapa deve ocorrer depois que o gateway e o ledger estiverem funcionando localmente.
+
+Tarefa 7.1 — Integração com uma API oficial de custos
+
+Selecionar um provedor para o qual exista acesso autorizado a dados administrativos.
+
+Implementar:
+
+Configuração de credenciais.
+Verificação de acesso.
+Coleta por período.
+Paginação.
+Persistência da origem.
+Atualização incremental.
+Tratamento de limites de taxa.
+Reconciliação.
+
+Não presumir que uma API de uso ofereça o custo final, os identificadores de usuários ou todos os períodos históricos. Essas capacidades variam por provedor e plano.
+
+Tarefa 7.2 — Integração de licenças
+
+Implementar um conector para uma plataforma que disponibilize informações sobre assentos ou atribuições.
+
+O conector deverá preservar o identificador externo e tentar relacioná-lo com a identidade corporativa correspondente.
+
+Registros sem correspondência devem ser marcados para revisão, em vez de associados automaticamente a uma pessoa por aproximação.
+
+Tarefa 7.3 — Adicionar um segundo provedor de inferência
+
+Após validar o adaptador local, adicionar um adaptador externo opcional.
+
+Uma possibilidade é a Gemini API, que oferece acesso gratuito limitado a determinados modelos e condições. Consultar a tabela vigente antes de habilitar o conector:
+
+https://ai.google.dev/gemini-api/docs/pricing
+
+Atenção à privacidade: as condições da faixa gratuita podem permitir que o conteúdo enviado seja utilizado para melhorar produtos. Utilizar exclusivamente dados sintéticos ou não sensíveis nesse ambiente e verificar os termos aplicáveis antes de enviar qualquer informação.
+
+O protótipo não deve depender dessa integração para funcionar.
+
+Critérios de conclusão:
+
+Existe pelo menos um conector de dados externos ou uma fixture validada.
+A ingestão preserva a origem e o período.
+A integração pode ser executada novamente sem duplicação.
+Erros de autenticação e limites de taxa são tratados.
+O dashboard identifica a última sincronização.
+12. Etapa 8 — Construir o dashboard
+Tarefa 8.1 — Implementar as páginas
+
+Criar as páginas:
+
+Visão geral.
+Consumo de APIs.
+Custos.
+Licenças e assentos.
+Projetos e equipes.
+Chaves virtuais.
+Orçamentos.
+Conectores e sincronizações.
+Auditoria.
+Tarefa 8.2 — Implementar os indicadores
+
+A visão geral deverá apresentar:
+
+Custo estimado no período.
+Custo reportado pelos fornecedores.
+Custo de licenças.
+Consumo por provedor e modelo.
+Consumo por projeto e equipe.
+Percentual de utilização dos orçamentos.
+Licenças atribuídas e sem atividade observada.
+Fontes desatualizadas.
+Custos pendentes de reconciliação.
+
+Todos os indicadores deverão informar o período e a moeda.
+
+Não preencher dados ausentes com zero quando isso puder indicar incorretamente que não houve consumo.
+
+Tarefa 8.3 — Criar filtros
+
+Implementar filtros por:
+
+Período.
+Organização.
+Projeto.
+Equipe.
+Provedor.
+Modelo.
+Categoria de custo.
+Origem do dado.
+
+A API deve aplicar a autorização antes de retornar resultados.
+
+Critério de conclusão: o dashboard consegue mostrar os eventos gerados pelo gateway e os custos importados, sem misturar dados reais, estimados e sintéticos.
+
+13. Etapa 9 — Segurança, testes e observabilidade
+Tarefa 9.1 — Segurança
+
+Implementar e testar:
+
+Autenticação de usuários.
+Autorização por papel.
+Isolamento multi-tenant.
+Hash das chaves virtuais.
+Proteção de segredos.
+Validação de entradas.
+Limites de requisições.
+Auditoria.
+Minimização de dados.
+Política de retenção.
+
+Não registrar tokens de acesso, credenciais de provedores ou conteúdo sensível de prompts nos logs.
+
+Tarefa 9.2 — Observabilidade
+
+Implementar logs estruturados com:
+
+request_id
+Organização.
+Projeto.
+Provedor.
+Estado da operação.
+Duração.
+Código de erro.
+
+Adicionar métricas de falha do gateway, latência, volume de chamadas e execução dos workers.
+
+Tarefa 9.3 — Testes automatizados
+
+Criar testes unitários para cálculos financeiros e regras de autorização.
+
+Criar testes de integração para PostgreSQL, conectores, gateway e orçamento.
+
+Criar testes de ponta a ponta para o fluxo:
+
+Criar um projeto.
+Criar uma chave virtual.
+Fazer uma chamada à LLM local.
+Registrar o evento.
+Calcular o custo.
+Exibir o evento no dashboard.
+Aplicar um limite de orçamento.
+Confirmar o bloqueio da próxima chamada quando aplicável.
+Tarefa 9.4 — Recuperação
+
+Testar:
+
+Reinicialização do banco.
+Interrupção de um worker.
+Falha de um conector.
+Timeout da LLM.
+Erro na persistência do ledger.
+Retomada de sincronizações.
+Backup e restauração do banco.
+
+Critério de conclusão: o sistema consegue identificar falhas e recuperar operações sem duplicar silenciosamente registros financeiros.
+
+14. Critérios de aceitação do protótipo completo
+
+O protótipo será considerado funcional quando todos os itens abaixo forem atendidos.
+
+Infraestrutura
+O ambiente pode ser inicializado seguindo o README.
+PostgreSQL e serviços locais estão funcionando.
+A LLM local responde a requisições.
+As migrações são reproduzíveis.
+As variáveis de ambiente estão documentadas.
+Funcionalidades
+É possível autenticar um usuário.
+É possível criar organizações, projetos e equipes.
+É possível criar e revogar chaves virtuais.
+O gateway executa uma chamada real à LLM local.
+O consumo é registrado no ledger.
+O custo é calculado a partir de preços versionados.
+O dashboard apresenta os registros.
+O importador CSV funciona.
+Existe pelo menos um fluxo de ingestão externa ou uma fixture validada.
+Os orçamentos podem limitar chamadas.
+Os custos estimados e reportados são apresentados separadamente.
+Segurança e integridade
+Testes de isolamento entre organizações passam.
+Credenciais reais não são persistidas em texto puro.
+Não há duplicação lógica de eventos na repetição de operações.
+Os erros são rastreáveis.
+Os registros financeiros mantêm a proveniência.
+15. Plano de execução sugerido
+
+A sequência abaixo evita começar por partes visuais sem uma base funcional.
+
+Ordem	Entrega	Resultado esperado
+1	Ambiente local	Banco, ferramentas e LLM funcionando
+2	Repositório e contratos	Estrutura modular e compilação
+3	Banco e domínio	Entidades e constraints
+4	Identidade	Login e isolamento multi-tenant
+5	Framework de conectores	CSV e worker funcionando
+6	Gateway local	Chamadas reais à LLM registradas
+7	Ledger financeiro	Custos calculados e rastreáveis
+8	Orçamentos	Políticas de consumo aplicadas
+9	Integrações externas	Primeiro conector oficial
+10	Dashboard	Visão consolidada
+11	Testes e hardening	Fluxo completo validado
+
+A duração de cada entrega dependerá do ambiente e da disponibilidade para desenvolvimento. Não é necessário concluir todas as integrações externas para demonstrar o fluxo financeiro inicial.
+
+16. Checklist de início
+
+Antes de começar a desenvolver funcionalidades, validar estes pré-requisitos:
+
+Git instalado.
+Node.js LTS instalado.
+Docker instalado.
+Repositório criado.
+PostgreSQL funcionando.
+Ollama instalado.
+Modelo local baixado.
+Chamada direta ao modelo funcionando.
+Estrutura do monorepo criada.
+Variáveis de ambiente documentadas.
+Primeiro teste de conexão com o PostgreSQL executado.
+
+Não avançar para o gateway antes de validar a LLM local.
+
+Não avançar para o dashboard antes de validar o registro de uma chamada real no ledger.
+
+Não avançar para a integração financeira externa antes de validar os cálculos com dados sintéticos.
+
+17. Referências oficiais
+Ollama — instalação: https://ollama.com/download
+Ollama — API e métricas de uso: https://github.com/ollama/ollama/blob/main/docs/api.md
+Keycloak — início com Docker: https://www.keycloak.org/getting-started/getting-started-docker
+Gemini API — preços e condições: https://ai.google.dev/gemini-api/docs/pricing
+PostgreSQL — documentação: https://www.postgresql.org/docs/
+Docker — documentação: https://docs.docker.com/
+Node.js — documentação: https://nodejs.org/docs/
+Fastify — documentação: https://fastify.dev/docs/latest/
+OpenAPI — especificação: https://spec.openapis.org/oas/latest.html
+Conclusão
+
+A primeira versão deve demonstrar um fluxo completo e verificável: autenticação, controle de acesso, chamada de inferência, registro de utilização, cálculo de custo, importação de dados externos e visualização financeira.
+
+A prioridade é construir um sistema que funcione de ponta a ponta, mesmo que inicialmente utilize uma LLM local e dados sintéticos. Essa abordagem reduz custos, acelera os testes e permite validar as decisões arquiteturais antes de conectar credenciais corporativas ou dados financeiros reais.
+
+O projeto deve começar pelo ambiente local e pela validação do Ollama. Depois, avançar para o banco de dados, a identidade e o gateway. As integrações corporativas e a expansão da arquitetura virão quando o fluxo central estiver comprovado.

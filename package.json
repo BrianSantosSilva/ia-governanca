@@ -1,0 +1,44 @@
+{
+  "name": "ia-governanca",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Spend & Governance Platform — Protótipo de governança, consumo e custos de IA",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev:api": "npm --workspace=@ia-governanca/api run dev",
+    "dev:gateway": "npm --workspace=@ia-governanca/gateway run dev",
+    "dev:worker": "npm --workspace=@ia-governanca/worker run dev",
+    "dev:web": "npm --workspace=@ia-governanca/web run dev",
+    "migrate:up": "tsx packages/database/src/cli-migrate.ts up",
+    "migrate:down": "tsx packages/database/src/cli-migrate.ts down",
+    "db:embedded": "tsx scripts/embedded-postgres.ts",
+    "db:reset": "tsx scripts/reset-db.ts",
+    "auth:create-user": "tsx scripts/create-user.ts",
+    "retention:prune": "tsx packages/database/src/cli-retention.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/pg": "^8.11.11",
+    "dotenv": "^16.4.7",
+    "embedded-postgres": "17.11.0-beta.19",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "pg": "^8.13.3",
+    "zod": "^4.6.7"
+  },
+  "overrides": {
+    "@fastify/static": {
+      "glob": "^14.0.3"
+    }
+  }
+}

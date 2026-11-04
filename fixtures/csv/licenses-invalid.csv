@@ -1,0 +1,4 @@
+external_id,provider,contract_id,user_email,user_external_id,status,seat_cost,currency,assigned_at,last_activity_at
+gh-copilot-err-001,github,,,,assigned,19.000000,USD,2026-10-01T08:00:00.000Z,2026-10-30T17:45:00.000Z
+gh-copilot-err-002,github,,fabio.teste@empresa.com.br,gh-fabio,invalid_status,19.000000,USD,2026-10-01T08:00:00.000Z,
+gh-copilot-err-003,github,,gabi.teste@empresa.com.br,gh-gabi,assigned,-25.000000,BRL,2026-10-01T08:00:00.000Z,

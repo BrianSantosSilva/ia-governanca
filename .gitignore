@@ -1,0 +1,27 @@
+# Dependências
+node_modules/
+.npm/
+
+# Build e Artefatos TypeScript
+dist/
+build/
+*.tsbuildinfo
+
+# Variáveis de Ambiente e Segredos
+.env
+.env.local
+.env.*.local
+
+# Cobertura e Testes
+coverage/
+backups/
+
+# Logs e Arquivos de Sistema
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# PostgreSQL embarcado e Node portatil (first-project-init)
+.data/
+.tools/

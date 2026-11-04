@@ -1,0 +1,94 @@
+{
+  "realm": "ai-spend",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "clients": [
+    {
+      "clientId": "ia-governanca-web",
+      "name": "ia-governanca Frontend Web App",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "ia-governanca-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "ia-governanca-web",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "owner",
+      "email": "owner@acme.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Alice",
+      "lastName": "Owner",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "owner_dev_123",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "finops",
+      "email": "finops@acme.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Bruno",
+      "lastName": "FinOps",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "finops_dev_123",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "viewer",
+      "email": "viewer@acme.local",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Carla",
+      "lastName": "Viewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "viewer_dev_123",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

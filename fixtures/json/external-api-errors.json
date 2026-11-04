@@ -1,0 +1,9 @@
+{
+  "unauthorized": { "status": 401, "message": "synthetic unauthorized response" },
+  "forbidden": { "status": 403, "message": "synthetic forbidden response" },
+  "rate_limited": {
+    "status": 429,
+    "headers": { "retry-after": "2" },
+    "message": "synthetic rate limit response"
+  }
+}

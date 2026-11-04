@@ -1,0 +1,19 @@
+{
+  "name": "@ia-governanca/contracts",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "zod": "^4.6.7"
+  }
+}

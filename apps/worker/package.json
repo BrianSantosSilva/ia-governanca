@@ -1,0 +1,17 @@
+{
+  "name": "@ia-governanca/worker",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@ia-governanca/connectors": "*",
+    "@ia-governanca/contracts": "*",
+    "@ia-governanca/database": "*",
+    "@ia-governanca/finance": "*",
+    "@ia-governanca/observability": "*"
+  }
+}

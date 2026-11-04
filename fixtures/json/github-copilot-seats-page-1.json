@@ -1,0 +1,18 @@
+{
+  "seats": [
+    {
+      "assignee": { "id": 123456, "login": "synthetic-user-1" },
+      "plan": "copilot_enterprise",
+      "created_at": "2026-10-01T10:00:00Z",
+      "pending_cancellation_date": null,
+      "last_activity_at": "2026-10-30T12:15:00Z"
+    },
+    {
+      "assignee": { "id": 234567, "login": "synthetic-user-2" },
+      "plan": "copilot_enterprise",
+      "created_at": "2026-10-02T10:00:00Z",
+      "pending_cancellation_date": null,
+      "last_activity_at": null
+    }
+  ]
+}

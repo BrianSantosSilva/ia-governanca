@@ -1,0 +1,19 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "start_time": 1793404800,
+      "end_time": 1793491200,
+      "results": [
+        {
+          "amount": { "value": "12.34567890", "currency": "usd" },
+          "line_item": "input_tokens",
+          "project_id": "proj_synthetic_123",
+          "model": "gpt-4.1-mini"
+        }
+      ]
+    }
+  ],
+  "has_more": true,
+  "next_page": "page_synthetic_2"
+}

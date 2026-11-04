@@ -1,0 +1,26 @@
+{
+  "name": "@ia-governanca/api",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.1",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/swagger": "^9.4.2",
+    "@fastify/swagger-ui": "^6.1.2",
+    "@ia-governanca/connectors": "*",
+    "@ia-governanca/contracts": "*",
+    "@ia-governanca/database": "*",
+    "@ia-governanca/finance": "*",
+    "@ia-governanca/identity": "*",
+    "@ia-governanca/observability": "*",
+    "@ia-governanca/policies": "*",
+    "@ia-governanca/secure-content": "*",
+    "@ia-governanca/worker": "*",
+    "fastify": "^5.2.1"
+  }
+}

@@ -1,0 +1,6 @@
+external_id,provider,model,period_start,period_end,usage_quantity,currency,amount,project_id
+openai-cost-202610-001,openai,gpt-4o,2026-10-01T00:00:00.000Z,2026-10-31T23:59:59.000Z,250000,USD,12.50000000,
+openai-cost-202610-002,openai,gpt-4o-mini,2026-10-01T00:00:00.000Z,2026-10-31T23:59:59.000Z,1200000,USD,0.72000000,
+anthropic-cost-202610-001,anthropic,claude-3-5-sonnet,2026-10-01T00:00:00.000Z,2026-10-31T23:59:59.000Z,400000,USD,18.00000000,
+cohere-cost-202610-001,cohere,command-r-plus,2026-10-01T00:00:00.000Z,2026-10-31T23:59:59.000Z,80000,USD,2.40000000,
+ollama-cost-202610-001,ollama,llama3.2,2026-10-01T00:00:00.000Z,2026-10-31T23:59:59.000Z,500000,BRL,0.00000000,
