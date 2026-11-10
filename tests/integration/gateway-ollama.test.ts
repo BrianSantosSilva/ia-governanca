@@ -1103,23 +1103,34 @@ describe('Épico 05 — Gateway LLM, chaves virtuais, ledger e consulta administ
     );
     const gateway = await buildGatewayServer({ pool, adapter });
     const headers = { authorization: `Bearer ${key.apiKey}` };
+    const blockedRequestId = `blocked-${crypto.randomUUID()}`;
     const blocked = await gateway.inject({
       method: 'POST',
       url: '/v1/chat/completions',
-      headers,
+      headers: { ...headers, 'x-request-id': blockedRequestId },
       payload: {
         model: 'llama3.2',
         messages: [{ role: 'user', content: 'A BLOCKED PHRASE must not reach the LLM' }],
         stream: true,
+        stream_options: { include_usage: true },
       },
     });
-    expect(blocked.statusCode).toBe(403);
-    expect(blocked.headers['content-type']).not.toContain('text/event-stream');
-    expect(JSON.parse(blocked.body)).toMatchObject({ error: 'guardrail_blocked', status: 'violation' });
+    expect(blocked.statusCode).toBe(200);
+    expect(blocked.headers['content-type']).toContain('text/event-stream');
+    expect(blocked.headers['x-guardrail-status']).toBe('violation');
+    const chunks = blocked.body.split('\n\n').filter((part) => part.startsWith('data: ') && part !== 'data: [DONE]')
+      .map((part) => JSON.parse(part.slice('data: '.length)));
+    expect(chunks[0]).toMatchObject({
+      object: 'chat.completion.chunk',
+      choices: [{ delta: { role: 'assistant', content: 'Essa interação foi interrompida devido à quebra de políticas internas.' } }],
+    });
+    expect(chunks[1].choices[0].finish_reason).toBe('content_filter');
+    expect(chunks[2]).toMatchObject({ choices: [], usage: { total_tokens: 0 } });
+    expect(blocked.body).toContain('data: [DONE]\n\n');
     expect(targetCalls).toBe(0);
     const blockedLedger = await pool.query<{ status: string; error_code: string }>(
       `SELECT status, error_code FROM usage_events WHERE request_id = $1`,
-      [JSON.parse(blocked.body).requestId],
+      [blockedRequestId],
     );
     expect(blockedLedger.rows[0]).toMatchObject({
       status: 'blocked_policy',
@@ -1130,6 +1141,28 @@ describe('Épico 05 — Gateway LLM, chaves virtuais, ledger e consulta administ
       [deterministicRule.rows[0]!.id],
     );
     expect(blockedAlert.rows[0]?.reason).not.toContain('BLOCKED PHRASE');
+
+    const blockedJson = await gateway.inject({
+      method: 'POST',
+      url: '/v1/chat/completions',
+      headers,
+      payload: {
+        model: 'llama3.2',
+        messages: [{ role: 'user', content: 'blocked phrase' }],
+        stream: false,
+      },
+    });
+    expect(blockedJson.statusCode).toBe(200);
+    expect(blockedJson.headers['x-guardrail-status']).toBe('violation');
+    expect(JSON.parse(blockedJson.body)).toMatchObject({
+      object: 'chat.completion',
+      choices: [{
+        message: { role: 'assistant', content: 'Essa interação foi interrompida devido à quebra de políticas internas.' },
+        finish_reason: 'content_filter',
+      }],
+      usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+    });
+    expect(targetCalls).toBe(0);
 
     const ticket = crypto.randomBytes(32).toString('hex');
     await pool.query(
@@ -1225,14 +1258,18 @@ describe('Épico 05 — Gateway LLM, chaves virtuais, ledger e consulta administ
       [asyncRule.rows[0]!.id, asyncRequestId],
     );
     expect(pending.rows[0]?.status).toBe('pending');
-    await new Promise((resolve) => setTimeout(resolve, 350));
-    const asyncAlert = await pool.query<{ outcome: string; reason: string }>(
-      `SELECT outcome, reason FROM guardrail_alerts
-       WHERE guardrail_rule_id = $1 AND request_id = $2`,
-      [asyncRule.rows[0]!.id, asyncRequestId],
-    );
-    expect(asyncAlert.rows[0]).toMatchObject({ outcome: 'violation', reason: 'Violação detectada pela regra inteligente' });
-    expect(asyncAlert.rows[0]?.reason).not.toContain('inspect this asynchronously');
+    let asyncAlert: { outcome: string; reason: string } | undefined;
+    for (let attempt = 0; attempt < 50 && !asyncAlert; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const result = await pool.query<{ outcome: string; reason: string }>(
+        `SELECT outcome, reason FROM guardrail_alerts
+         WHERE guardrail_rule_id = $1 AND request_id = $2`,
+        [asyncRule.rows[0]!.id, asyncRequestId],
+      );
+      asyncAlert = result.rows[0];
+    }
+    expect(asyncAlert).toMatchObject({ outcome: 'violation', reason: 'Violação detectada pela regra inteligente' });
+    expect(asyncAlert?.reason).not.toContain('inspect this asynchronously');
     const evaluatorCost = await pool.query<{ cost_category: string }>(
       `SELECT cost_category FROM cost_records
        WHERE source_guardrail_evaluation_id = (

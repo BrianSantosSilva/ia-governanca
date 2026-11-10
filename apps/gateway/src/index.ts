@@ -1188,6 +1188,46 @@ export async function buildGatewayServer(
             settledAmount: '0',
             status: 'released',
           });
+          if (outcome.status === 'violation') {
+            const id = `chatcmpl-${requestId}`;
+            const created = Math.floor(Date.now() / 1000);
+            const content = 'Essa interação foi interrompida devido à quebra de políticas internas.';
+            const usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+            reply.header('X-Guardrail-Status', 'violation');
+            reply.header('Cache-Control', 'no-store');
+            if (chatReq.stream) {
+              reply.hijack();
+              reply.raw.writeHead(200, {
+                'Content-Type': 'text/event-stream; charset=utf-8',
+                'Cache-Control': 'no-store',
+                'X-Request-Id': requestId,
+                'X-Guardrail-Status': 'violation',
+                'X-Accel-Buffering': 'no',
+              });
+              await writeSseChunk(reply.raw, {
+                id, object: 'chat.completion.chunk', created, model: chatReq.model,
+                choices: [{ index: 0, delta: { role: 'assistant', content }, finish_reason: null }],
+              });
+              await writeSseChunk(reply.raw, {
+                id, object: 'chat.completion.chunk', created, model: chatReq.model,
+                choices: [{ index: 0, delta: {}, finish_reason: 'content_filter' }],
+              });
+              if (chatReq.stream_options?.include_usage) {
+                await writeSseChunk(reply.raw, {
+                  id, object: 'chat.completion.chunk', created, model: chatReq.model, choices: [], usage,
+                });
+              }
+              reply.raw.end('data: [DONE]\n\n');
+              return reply;
+            }
+            return reply.send({
+              id, object: 'chat.completion', created, model: chatReq.model,
+              choices: [{
+                index: 0, message: { role: 'assistant', content }, finish_reason: 'content_filter',
+              }],
+              usage,
+            });
+          }
           return reply.code(403).send({
             error: 'guardrail_blocked',
             ruleId: rule.id,

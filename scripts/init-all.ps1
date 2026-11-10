@@ -40,7 +40,7 @@ function Test-DockerReady {
 function Get-EnvValue {
   param(
     [Parameter(Mandatory = $true)][string]$Name,
-    [Parameter(Mandatory = $true)][string]$DefaultValue
+    [Parameter(Mandatory = $true)][AllowEmptyString()][string]$DefaultValue
   )
 
   $line = Get-Content -LiteralPath (Join-Path $projectRoot '.env') |

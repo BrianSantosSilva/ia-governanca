@@ -70,6 +70,10 @@ Para executar as etapas manualmente:
    ```
    `npm run typecheck` também executa a verificação de referências TypeScript. O teste de fluxo E2E usa um adaptador LLM determinístico para não depender de Ollama ou de serviços externos.
 
+## Bloqueios de guardrails
+
+Uma violação confirmada por um guardrail runtime interrompe a requisição antes da chamada ao modelo e retorna HTTP 200 com a mensagem de política no conteúdo do assistente, inclusive em streaming. O retorno informa `finish_reason: content_filter` e o cabeçalho `X-Guardrail-Status: violation`; o ledger continua registrando `blocked_policy`. Os tokens da resposta são zero porque não houve inferência no modelo solicitado; um avaliador inteligente pode ter consumo registrado separadamente. Falhas e análises inconclusivas continuam bloqueadas com HTTP 403, sem afirmar que houve violação. Guardrails assíncronos não interrompem a resposta.
+
 ## Rate limiting, métricas e retenção
 
 O Gateway expõe `GET /v1/models` (compatível com OpenAI): com `Authorization: Bearer <chave virtual>`, lista apenas os modelos permitidos para a chave. Em ferramentas como VS Code (Continue, Copilot Chat BYOK), use a URL base `http://localhost:3002/v1`.
