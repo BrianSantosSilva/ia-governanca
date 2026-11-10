@@ -77,6 +77,9 @@ Outros exemplos
 O  -SeedDev  apaga as tabelas do banco. Use só em ambiente de teste
 
 
+C:\Users\Brian\.copilot
+
+
 
 link de acesso ao azure
 https://ai.azure.com/nextgen
